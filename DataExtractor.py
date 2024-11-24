@@ -1,6 +1,6 @@
 import pandas as pd
 
-def process_question(data: pd.DataFrame, question_id: int) -> dict:
+def process_question(data: pd.DataFrame, question_id: int, is_labeled=True) -> dict:
     row = data.loc[[question_id]]
 
     # QuestionId
@@ -23,11 +23,21 @@ def process_question(data: pd.DataFrame, question_id: int) -> dict:
     
     # Incorrect answers
     IncorrectAnswers = []
+    MisconceptionIds = []
     for option in ['A', 'B', 'C', 'D']:
         if option == CorrectAnswer: continue
 
+        # Incorrect answers
         IncorrectAnswerText = row[f'Answer{option}Text'].values[0]
         IncorrectAnswers.append(IncorrectAnswerText)
+
+        # If provided, appending misconseptions
+        if is_labeled:
+            try:
+                MisconceptionId = row[f'Misconception{option}Id'].values[0]
+                MisconceptionIds.append(MisconceptionId)
+            except KeyError:
+                print('No labels are present in the DataFrame. Please, check your data!')
 
     # Creating a dictionary for output
     output = {
@@ -40,6 +50,45 @@ def process_question(data: pd.DataFrame, question_id: int) -> dict:
         'CorrectAnswer': CorrectAnswer,
         'CorrectAnswerText': CorrectAnswerText,
         'IncorrectAnswers': IncorrectAnswers,
+        'MisconceptionIds': MisconceptionIds if is_labeled else None,
     }
 
-    return output 
+    return output
+
+
+def standardize_question_data(question_details: dict, data: dict) -> dict:
+    # Standartize the data vs incorrect answers
+    for i in range(3):
+        for key in question_details:
+            if key in ['IncorrectAnswers', 'MisconceptionIds']: continue
+            data[key].append(question_details[key])
+
+        # Remaining data in lists
+        data['IncorrectAnswer'].append(question_details['IncorrectAnswers'][i])
+        if question_details['MisconceptionIds']:
+            data['MisconceptionId'].append(question_details['MisconceptionIds'][i])
+
+    return data
+
+def process_data(input_df: pd.DataFrame, is_labeled: bool) -> pd.DataFrame:
+    # Create new data collection
+    data = {
+        'QuestionId': [],
+        'SubjectId': [],
+        'SubjectName': [],
+        'ConstructId': [],
+        'ConstructName': [],
+        'QuestionText': [],
+        'CorrectAnswer': [],
+        'CorrectAnswerText': [],
+        'IncorrectAnswer': [],
+        'MisconceptionId': [],
+    }
+
+    # Reading question block and standardize the input data
+    for question_id in input_df.index.values:
+        question_details = process_question(input_df, question_id, is_labeled=is_labeled)
+        data = standardize_question_data(question_details, data)
+        print(question_details)
+
+    return pd.DataFrame(data=data)
