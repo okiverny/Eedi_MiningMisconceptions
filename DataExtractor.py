@@ -1,8 +1,10 @@
 import pandas as pd
-import numpy as np
 
 def process_question(data: pd.DataFrame, question_id: int) -> dict:
     row = data.loc[[question_id]]
+
+    # QuestionId
+    QuestionId = question_id
 
     # General subject
     SubjectId = row['SubjectId'].values[0]
@@ -26,9 +28,10 @@ def process_question(data: pd.DataFrame, question_id: int) -> dict:
 
         IncorrectAnswerText = row[f'Answer{option}Text'].values[0]
         IncorrectAnswers.append(IncorrectAnswerText)
-        print(IncorrectAnswerText)
 
+    # Creating a dictionary for output
     output = {
+        'QuestionId': QuestionId,
         'SubjectId': SubjectId,
         'SubjectName': SubjectName,
         'ConstructId': ConstructId,
