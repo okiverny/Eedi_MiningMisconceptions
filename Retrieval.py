@@ -1,29 +1,21 @@
-import os
-import numpy as np
 import pandas as pd
-from transformers import AutoTokenizer
-from sentence_transformers import SentenceTransformer, util
 
-from DataExtractor import process_question
+from SearchMethods import RetrievalStrategy, LexicalSearch
 
-# Model choice MODEL_NAME = "BAAI/bge-large-en-v1.5"
+class MisconceptRetrieval:
+    """The MisconceptRetrieval defines the interface to SearchMethods."""
 
-# Reading data
-df_train = pd.read_csv("data/train.csv").set_index('QuestionId')
-df_test = pd.read_csv("data/test.csv").set_index('QuestionId')
-misconception_mapping = pd.read_csv("data/misconception_mapping.csv").set_index('MisconceptionId')
+    def __init__(self, search_strategy: RetrievalStrategy) -> None:
+        self._search_strategy = search_strategy
 
-# Model
-#model = SentenceTransformer("all-MiniLM-L6-v2")
-#print(model)
+    def background_strategy(self) -> RetrievalStrategy:
+        """Just in case we need a reference to one of RetrievalStrategy objects"""
+        return self._search_strategy
 
-# Reading question block
-question_id = 1869
-result = process_question(df_test, question_id)
-print(result)
+    def set_background_strategy(self, search_strategy: RetrievalStrategy) -> None:
+        """Usually, the MisconceptRetrieval allows replacing a RetrievalStrategy object at runtime."""
+        self._search_strategy = search_strategy
 
+    def find_misconceptions(self, data):
 
-# Analysis
-print(706, misconception_mapping.loc[[706]].MisconceptionName.values[0])
-
-print(df_test.ConstructName.values[0])
+        return 0

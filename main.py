@@ -4,6 +4,8 @@ import pandas as pd
 import time
 
 from DataExtractor import process_question, standardize_question_data, process_data
+from Retrieval import MisconceptRetrieval
+from SearchMethods import LexicalSearch
 
 if __name__ == "__main__":
     # Reading data
@@ -25,5 +27,10 @@ if __name__ == "__main__":
 
     print(df_test.ConstructName.values[0])
 
-    print('Number of Unique misconceptions:', len(data.MisconceptionId.unique()))
-    print(len(misconception_mapping))
+    print('Number of Unique misconceptions in train data:', len(data.MisconceptionId.unique()))
+    print('Number of All known misconceptions:',len(misconception_mapping))
+
+
+    
+    # Initialize the MisconceptRetrieval with a lexical search strategy
+    retrieval = MisconceptRetrieval(LexicalSearch())
