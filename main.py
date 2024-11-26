@@ -30,7 +30,16 @@ if __name__ == "__main__":
     print('Number of Unique misconceptions in train data:', len(data.MisconceptionId.unique()))
     print('Number of All known misconceptions:',len(misconception_mapping))
 
+    print(misconception_mapping.MisconceptionName)
+    print(df_train.head(10).QuestionText)
 
-    
+    queries = df_train.head(10).QuestionText.values
+    misconceptions = misconception_mapping.MisconceptionName.values
+
     # Initialize the MisconceptRetrieval with a lexical search strategy
     retrieval = MisconceptRetrieval(LexicalSearch())
+    print(misconceptions)
+    top_results, scores = retrieval.find_misconceptions(misconceptions, queries, 10)
+
+    print(top_results)
+
