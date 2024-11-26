@@ -22,7 +22,7 @@ def process_question(data: pd.DataFrame, question_id: int, is_labeled=True) -> d
     CorrectAnswerText = row[f'Answer{CorrectAnswer}Text'].values[0]
     
     # Incorrect answers
-    IncorrectAnswers = []
+    IncorrectAnswers, IncorrectOptions = [], []
     MisconceptionIds = []
     for option in ['A', 'B', 'C', 'D']:
         if option == CorrectAnswer: continue
@@ -30,6 +30,7 @@ def process_question(data: pd.DataFrame, question_id: int, is_labeled=True) -> d
         # Incorrect answers
         IncorrectAnswerText = row[f'Answer{option}Text'].values[0]
         IncorrectAnswers.append(IncorrectAnswerText)
+        IncorrectOptions.append(option)
 
         # If provided, appending misconseptions
         if is_labeled:
@@ -49,6 +50,7 @@ def process_question(data: pd.DataFrame, question_id: int, is_labeled=True) -> d
         'QuestionText': QuestionText,
         'CorrectAnswer': CorrectAnswer,
         'CorrectAnswerText': CorrectAnswerText,
+        'IncorrectOptions': IncorrectOptions,
         'IncorrectAnswers': IncorrectAnswers,
         'MisconceptionIds': MisconceptionIds if is_labeled else None,
     }
@@ -60,11 +62,13 @@ def standardize_question_data(question_details: dict, data: dict) -> dict:
     # Standartize the data vs incorrect answers
     for i in range(3):
         for key in question_details:
-            if key in ['IncorrectAnswers', 'MisconceptionIds']: continue
+            if key in ['IncorrectAnswers', 'MisconceptionIds', 'IncorrectOptions', 'QuestionId_Answer']: continue
             data[key].append(question_details[key])
 
         # Remaining data in lists
         data['IncorrectAnswer'].append(question_details['IncorrectAnswers'][i])
+        data['IncorrectOption'].append(question_details['IncorrectOptions'][i])
+        data['QuestionId_Answer'].append( f"{question_details['QuestionId']}_{question_details['IncorrectOptions'][i]}" )
         if question_details['MisconceptionIds']:
             data['MisconceptionId'].append(question_details['MisconceptionIds'][i])
 
@@ -82,6 +86,8 @@ def process_data(input_df: pd.DataFrame, is_labeled: bool) -> pd.DataFrame:
         'CorrectAnswer': [],
         'CorrectAnswerText': [],
         'IncorrectAnswer': [],
+        'IncorrectOption': [],
+        'QuestionId_Answer': [],
         'MisconceptionId': [],
     }
 
