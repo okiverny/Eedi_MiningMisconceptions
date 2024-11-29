@@ -5,7 +5,7 @@ import time, warnings
 from tqdm import tqdm
 from rank_bm25 import BM25Okapi
 from transformers import AutoTokenizer
-from sentence_transformers import SentenceTransformer, util
+from sentence_transformers import SentenceTransformer, CrossEncoder, util
 
 from helpers import bm25_tokenizer, preprocess_text
 
@@ -52,6 +52,32 @@ class LexicalSearch(RetrievalStrategy):
                 results[iquery][top_i] = texts[hit['corpus_id']]
 
         
+        return results, scores
+
+class SemanticSearch(RetrievalStrategy):
+    #### Semantic Search (bi-encoder)
+    def search_misconceptions(self, texts, queries, top_k):
+
+        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
+        bi_encoder.max_seq_length = 256     #Truncate long passages to 256 tokens
+        print('Encoding misconceptions ...')
+        misconception_embeddings = bi_encoder.encode(texts, convert_to_tensor=True, show_progress_bar=True)
+
+        print('Encoding questions ...')
+        query_embeddings = bi_encoder.encode(queries.values, convert_to_tensor=True, show_progress_bar=True)
+        hits = util.semantic_search(query_embeddings, misconception_embeddings, top_k=top_k)
+
+        # get top results and corresponding scores
+        scores = np.zeros((len(queries), top_k))
+        results = [[0 for _ in range(top_k)] for _ in range(len(queries))]
+
+        for iquery, iquery_hits in enumerate(hits):
+            for top_i, hit in enumerate(iquery_hits):
+                scores[iquery][top_i] = hit['score']
+                results[iquery][top_i] = texts[hit['corpus_id']]
+
+        print(hits[0])
+
         return results, scores
 
     
