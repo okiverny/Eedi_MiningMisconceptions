@@ -58,7 +58,10 @@ class SemanticSearch(RetrievalStrategy):
     #### Semantic Search (bi-encoder)
     def search_misconceptions(self, texts, queries, top_k):
 
-        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
+        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1') # MAPK@25 = 0.1845
+        #bi_encoder = SentenceTransformer('multi-qa-mpnet-base-cos-v1') # MAPK@25 = 0.1851
+        #bi_encoder = SentenceTransformer('all-mpnet-base-v2')  # MAPK@25 = 0.1841
+        #bi_encoder = SentenceTransformer('Alibaba-NLP/gte-base-en-v1.5', trust_remote_code=True) # MAPK@25 = 0.1730
         bi_encoder.max_seq_length = 256     #Truncate long passages to 256 tokens
         print('Encoding misconceptions ...')
         misconception_embeddings = bi_encoder.encode(texts, convert_to_tensor=True, show_progress_bar=True)
@@ -75,8 +78,6 @@ class SemanticSearch(RetrievalStrategy):
             for top_i, hit in enumerate(iquery_hits):
                 scores[iquery][top_i] = hit['score']
                 results[iquery][top_i] = texts[hit['corpus_id']]
-
-        print(hits[0])
 
         return results, scores
 

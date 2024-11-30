@@ -5,7 +5,7 @@ import time
 
 from DataExtractor import process_question, standardize_question_data, process_data
 from Retrieval import MisconceptRetrieval
-from SearchMethods import LexicalSearch
+from SearchMethods import LexicalSearch, SemanticSearch
 from eedi_metrics import mapk, apk
 
 if __name__ == "__main__":
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     # Filter NaNs
     data = data[data['MisconceptionId'].notnull()]
     data['MisconceptionId'] = data['MisconceptionId'].astype('Int32')
-    data = data.head(10)
+    #data = data.head(10)
 
     #end = time.time()
     #print(f"time: {end - start:.4f} seconds")
@@ -41,27 +41,52 @@ if __name__ == "__main__":
     #print(df_train.head(10).QuestionText)
 
     misconceptions = misconception_mapping.MisconceptionName.values
-    queries = data.QuestionText + '_' + data.ConstructName #+ '_' + data.IncorrectAnswer
+    queries =  data.SubjectName + ' ' + data.ConstructName + ' ' + data.QuestionText + ' ' + data.IncorrectAnswer
 
     # Initialize the MisconceptRetrieval with a lexical search strategy
-    retrieval = MisconceptRetrieval(LexicalSearch())
-    top_results, scores = retrieval.find_misconceptions(misconceptions, queries, 25)
+    #retrieval = MisconceptRetrieval(LexicalSearch())
+    #BM25_results, BM25_scores = retrieval.find_misconceptions(misconceptions, queries, 25)
 
-    top_results_index = []
-    for i in range(len(top_results)):
-        top_results_index.append([misconception_txt_id[miscName] for miscName in top_results[i]])
+    ############
+    retrieval = MisconceptRetrieval(SemanticSearch())
+    BM25_results, BM25_scores = retrieval.find_misconceptions(misconceptions, queries, 25)
+    ###########
 
     # Submission format
-    data['predictions'] = top_results_index
+    BM25_results_index, BM25_results_scores = [], []
+    for i in range(len(BM25_results)):
+        BM25_results_index.append([misconception_txt_id[miscName] for miscName in BM25_results[i]])
+        BM25_results_scores.append([scores for scores in BM25_scores[i]])
+
+    data['predictions'] = BM25_results_index
+    data['BM25scores'] = BM25_results_scores
     #print(data['MisconceptionId'])
+
+    # Compute APK score for the BM25 search results
     data['score'] = data.apply(lambda row: apk([row['MisconceptionId']], row['predictions']), axis=1)
 
+
+    # Print outs for examination
     for idx, row in data.iterrows():
-        print(row['MisconceptionId'], row['predictions'])
         score = apk([row['MisconceptionId']], row['predictions'])
+        print()
+        print(row['MisconceptionId'], '---', row['predictions'], score)
+        print('      ', row['BM25scores'])
+        if score == 0.0:
+            print('----->', row.SubjectName)
+            print('----->', row.ConstructName)
+            print(row.QuestionText)
+            print('Correct Answer:', row.CorrectAnswerText)
+            print('Incorrect Answer:', row.IncorrectAnswer)
+            print('Correct misconception: ', misconception_id_txt[row['MisconceptionId']])
+            print('First rank misconception: ', misconception_id_txt[row['predictions'][0]])
+            print(30*'=')
     
 
     
     print(data)
     print(f'MAPK@25 (BM25) = {np.mean(data.score):.4f}')
+
+    #for c in data.ConstructName.unique():
+    #    print('-', c)
 

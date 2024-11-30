@@ -1,6 +1,6 @@
 import pandas as pd
 
-from SearchMethods import RetrievalStrategy, LexicalSearch
+from SearchMethods import RetrievalStrategy
 
 class MisconceptRetrieval:
     """The MisconceptRetrieval defines the interface to SearchMethods."""
