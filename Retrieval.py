@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from SearchMethods import RetrievalStrategy
 
@@ -19,3 +20,4 @@ class MisconceptRetrieval:
     def find_misconceptions(self, texts, queries, top_k):
         results, scores = self._search_strategy.search_misconceptions(texts, queries, top_k)
         return results, scores
+    

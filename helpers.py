@@ -27,23 +27,18 @@ def bm25_tokenizer(text):
             tokenized_doc.append(token)
     return tokenized_doc
 
-def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, top_k=25, alpha=0.8):
+def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, top_k=25, alpha=0.70):
     combined_results = []
     for sem_res, sem_scores, key_res, key_scores in zip(semantic_results, semantic_scores, keyword_results, keyword_scores):
-        combined_scores = np.zeros(len(semantic_results))
-        print('--->',sem_res, sem_scores)
-
-        # Reverse the order of semantic results (closest matches first)
-        #sem_res = sem_res[::-1]
-        #sem_scores = sem_scores[::-1]
 
         # Normalize semantic scores (now smaller is better)
         sem_scores_norm = (sem_scores - np.min(sem_scores)) / (np.max(sem_scores) - np.min(sem_scores))
-        sem_scores_norm = 1 - sem_scores_norm  # Invert so that smaller distances get higher scores
 
         # Normalize keyword scores
         key_scores_norm = (key_scores - np.min(key_scores)) / (np.max(key_scores) - np.min(key_scores))
 
+        # Compute combined scores with the alpha and 1-alpha weights
+        combined_scores = np.zeros(len(semantic_results))
         for idx, score in zip(sem_res, sem_scores_norm):
             combined_scores[idx] += alpha * score
 
@@ -52,8 +47,6 @@ def combined_search(semantic_results, semantic_scores, keyword_results, keyword_
 
         top_combined = np.argsort(combined_scores)[::-1][:top_k]
         combined_results.append(top_combined)
-
-    #print(f"combined res: {combined_results}")
 
     return combined_results
 
