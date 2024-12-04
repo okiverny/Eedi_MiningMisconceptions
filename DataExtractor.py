@@ -71,6 +71,8 @@ def standardize_question_data(question_details: dict, data: dict) -> dict:
         data['QuestionId_Answer'].append( f"{question_details['QuestionId']}_{question_details['IncorrectOptions'][i]}" )
         if question_details['MisconceptionIds']:
             data['MisconceptionId'].append(question_details['MisconceptionIds'][i])
+        else:
+            data['MisconceptionId'].append(0)
 
     return data
 
@@ -95,6 +97,7 @@ def process_data(input_df: pd.DataFrame, is_labeled: bool) -> pd.DataFrame:
     for question_id in input_df.index.values:
         question_details = process_question(input_df, question_id, is_labeled=is_labeled)
         data = standardize_question_data(question_details, data)
-        print(question_details)
+        #print(question_details)
+        #print(data)
 
     return pd.DataFrame(data=data)

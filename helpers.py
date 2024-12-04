@@ -27,7 +27,7 @@ def bm25_tokenizer(text):
             tokenized_doc.append(token)
     return tokenized_doc
 
-def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, top_k=25, alpha=0.70):
+def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, misconception_mapping, top_k=25, alpha=0.70):
     combined_results = []
     for sem_res, sem_scores, key_res, key_scores in zip(semantic_results, semantic_scores, keyword_results, keyword_scores):
 
@@ -38,7 +38,7 @@ def combined_search(semantic_results, semantic_scores, keyword_results, keyword_
         key_scores_norm = (key_scores - np.min(key_scores)) / (np.max(key_scores) - np.min(key_scores))
 
         # Compute combined scores with the alpha and 1-alpha weights
-        combined_scores = np.zeros(len(semantic_results))
+        combined_scores = np.zeros(len(misconception_mapping))
         for idx, score in zip(sem_res, sem_scores_norm):
             combined_scores[idx] += alpha * score
 

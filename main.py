@@ -19,21 +19,12 @@ if __name__ == "__main__":
     misconception_id_txt = dict(zip(misconception_mapping.index, misconception_mapping.MisconceptionName))
     misconception_txt_id = {miscName: miscIndex for miscIndex, miscName in misconception_id_txt.items()}
 
-    #start = time.time()
 
     is_labeled = True
     data = process_data(df_train, is_labeled)
     # Filter NaNs
     data = data[data['MisconceptionId'].notnull()]
     data['MisconceptionId'] = data['MisconceptionId'].astype('Int32')
-    #data = data.head(10)
-
-    #end = time.time()
-    #print(f"time: {end - start:.4f} seconds")
-
-    # Analysis
-    #print(706, misconception_mapping.loc[[706]].MisconceptionName.values[0])
-    #print(df_test.ConstructName.values[0])
 
     print('Number of Unique misconceptions in train data:', len(data.MisconceptionId.unique()))
     print('Number of All known misconceptions:',len(misconception_mapping))
@@ -41,8 +32,11 @@ if __name__ == "__main__":
     #print(misconception_mapping.MisconceptionName)
     #print(df_train.head(10).QuestionText)
 
+    start = time.time()
+
     misconceptions = misconception_mapping.MisconceptionName.values
-    queries =  data.SubjectName + ' ' + data.ConstructName + ' ' + data.QuestionText + ' ' + data.IncorrectAnswer
+    queries =  data.SubjectName + ' ' + data.ConstructName + '. Question ' + data.QuestionText + '. Answer ' + data.IncorrectAnswer +'.'
+    #queries =  '{ topic: ' + data.SubjectName + ', detailed topic: ' + data.ConstructName + '.\n, question: ' + data.QuestionText.replace("\n", " ") + '.\n, incorrect answer: ' + data.IncorrectAnswer.replace("\n", " ") +'.}'
 
     # Initialize the MisconceptRetrieval with a lexical search strategy
     retrieval = MisconceptRetrieval(LexicalSearch())
@@ -58,7 +52,7 @@ if __name__ == "__main__":
     ###########
 
     # Combine Lexical and Semantic search results
-    hybrid_results = combined_search(data['sem_preds'], data['sem_scores'], data['BM25preds'], data['BM25scores'])
+    hybrid_results = combined_search(data['sem_preds'], data['sem_scores'], data['BM25preds'], data['BM25scores'], misconception_mapping)
     data['hybrid_preds'] = hybrid_results
 
     #retrieval = MisconceptRetrieval(SemanticSearchReranking())
@@ -92,6 +86,8 @@ if __name__ == "__main__":
             print('First rank misconception: ', misconception_id_txt[row[preds_col][0]])
             print(30*'=')
     
+    end = time.time()
+    print(f"time: {end - start:.4f} seconds")
 
     
     print(data)
