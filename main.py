@@ -5,9 +5,8 @@ import time
 
 from DataExtractor import process_data
 from Retrieval import MisconceptRetrieval
-from SearchMethods import LexicalSearch, SemanticSearch, SemanticSearchReranking
-from eedi_metrics import mapk, apk
-from helpers import combined_search
+from SearchMethods import LexicalSearch, SemanticSearch, SemanticSearchFineTuned
+from helpers import combined_search, evaluate
 
 if __name__ == "__main__":
     # Reading data
@@ -35,63 +34,41 @@ if __name__ == "__main__":
     start = time.time()
 
     misconceptions = misconception_mapping.MisconceptionName.values
-    queries =  data.SubjectName + ' ' + data.ConstructName + '. Question ' + data.QuestionText + '. Answer ' + data.IncorrectAnswer +'.'
+    queries_lexic =  data.SubjectName + ' ' + data.ConstructName + '. Question ' + data.QuestionText + '. Answer ' + data.IncorrectAnswer +'.'
     #queries =  '{ topic: ' + data.SubjectName + ', detailed topic: ' + data.ConstructName + '.\n, question: ' + data.QuestionText.replace("\n", " ") + '.\n, incorrect answer: ' + data.IncorrectAnswer.replace("\n", " ") +'.}'
+    ### For BGE fine-tuned
+    queries =  data.SubjectName + ' (' + data.ConstructName + ').\nQuestion: ' + data.QuestionText + '\nCorrect Answer: ' + data.CorrectAnswerText +'\nIncorrect Answer: ' + data.IncorrectAnswer
 
-    # Initialize the MisconceptRetrieval with a lexical search strategy
+
+    ###### Initialize the MisconceptRetrieval with a lexical search strategy
     retrieval = MisconceptRetrieval(LexicalSearch())
-    BM25_results, BM25_scores = retrieval.find_misconceptions(misconceptions, queries, 25)
+    BM25_results, BM25_scores = retrieval.find_misconceptions(misconceptions, queries_lexic, 25)
     data['BM25preds'] = [[misconception_txt_id[miscName] for miscName in BM25_results[i]] for i in range(len(BM25_results))]
     data['BM25scores'] = list(BM25_scores)
 
-    ############
-    retrieval = MisconceptRetrieval(SemanticSearch())
+    ############ Semantic Search
+    # retrieval = MisconceptRetrieval(SemanticSearch())
+    # semantic_results, semantic_scores = retrieval.find_misconceptions(misconceptions, queries, 25)
+    # data['sem_preds'] = [[misconception_txt_id[miscName] for miscName in semantic_results[i]] for i in range(len(semantic_results))]
+    # data['sem_scores'] = list(semantic_scores)
+
+    ########### Semantic Search (Fine-Tuned)
+    retrieval = MisconceptRetrieval(SemanticSearchFineTuned())
     semantic_results, semantic_scores = retrieval.find_misconceptions(misconceptions, queries, 25)
     data['sem_preds'] = [[misconception_txt_id[miscName] for miscName in semantic_results[i]] for i in range(len(semantic_results))]
     data['sem_scores'] = list(semantic_scores)
-    ###########
 
     # Combine Lexical and Semantic search results
     hybrid_results = combined_search(data['sem_preds'], data['sem_scores'], data['BM25preds'], data['BM25scores'], misconception_mapping)
     data['hybrid_preds'] = hybrid_results
 
-    #retrieval = MisconceptRetrieval(SemanticSearchReranking())
-    #BM25_results, BM25_scores = retrieval.find_misconceptions(misconceptions, queries, 25)
-
-
 
     preds_col = 'hybrid_preds'
-
-    # Compute APK score for the BM25 search results
-    data['score'] = data.apply(lambda row: apk([row['MisconceptionId']], row[preds_col]), axis=1)
-    data['score10'] = data.apply(lambda row: apk([row['MisconceptionId']], row[preds_col], k=10), axis=1)
-    data['score1'] = data.apply(lambda row: apk([row['MisconceptionId']], row[preds_col], k=1), axis=1)
-
-
-    # Print outs for examination
-    for idx, row in data.iterrows():
-        score = apk([row['MisconceptionId']], row[preds_col])
-        score10 = apk([row['MisconceptionId']], row[preds_col], k=10)
-        score1 = apk([row['MisconceptionId']], row[preds_col], k=1)
-        print()
-        print(row['MisconceptionId'], '---', row[preds_col], score)
-        print('      ', row['BM25scores'])
-        if score == 0.0:
-            print('----->', row.SubjectName)
-            print('----->', row.ConstructName)
-            print(row.QuestionText)
-            print('Correct Answer:', row.CorrectAnswerText)
-            print('Incorrect Answer:', row.IncorrectAnswer)
-            print('Correct misconception: ', misconception_id_txt[row['MisconceptionId']])
-            print('First rank misconception: ', misconception_id_txt[row[preds_col][0]])
-            print(30*'=')
+    #preds_col = 'sem_preds'
+    data = evaluate(data, preds_col, misconception_id_txt)
     
     end = time.time()
     print(f"time: {end - start:.4f} seconds")
 
-    
-    print(data)
-    print(f'MAPK@25 (BM25) = {np.mean(data.score):.4f}')
-    print(f'MAPK@10 (BM25) = {np.mean(data.score10):.4f}')
-    print(f'MAPK@1 (BM25) = {np.mean(data.score1):.4f}')
+    #print(data)
 
