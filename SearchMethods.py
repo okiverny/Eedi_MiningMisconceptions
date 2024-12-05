@@ -58,7 +58,7 @@ class SemanticSearch(RetrievalStrategy):
     #### Semantic Search (bi-encoder)
     def search_misconceptions(self, texts, queries, top_k):
 
-        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1') # MAPK@25 = 0.1845
+        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1', device='cpu') # MAPK@25 = 0.1845
         #bi_encoder = SentenceTransformer('multi-qa-mpnet-base-cos-v1') # MAPK@25 = 0.1851
         #bi_encoder = SentenceTransformer('all-mpnet-base-v2')  # MAPK@25 = 0.1841
         #bi_encoder = SentenceTransformer('Alibaba-NLP/gte-base-en-v1.5', trust_remote_code=True) # MAPK@25 = 0.1730
@@ -124,5 +124,27 @@ class SemanticSearchReranking(RetrievalStrategy):
 
         return results, cross_scores
 
-    
-    
+class SemanticSearchFineTuned(RetrievalStrategy):
+    #### Semantic Search on fine-tuned model (bi-encoder)
+    def search_misconceptions(self, texts, queries, top_k):
+
+        bi_encoder = SentenceTransformer('/Users/okiverny/workspace/Kaggle/Eedi_MiningMisconceptions/models/Eedi-finetuned-bge')
+        bi_encoder.max_seq_length = 256     #Truncate long passages to 256 tokens
+        print('Encoding misconceptions ...')
+        misconception_embeddings = bi_encoder.encode(texts, convert_to_tensor=True, show_progress_bar=True)
+
+        print('Encoding questions ...')
+        queries = queries.apply(lambda x: preprocess_text(x))
+        query_embeddings = bi_encoder.encode(queries.values, convert_to_tensor=True, show_progress_bar=True)
+        hits = util.semantic_search(query_embeddings, misconception_embeddings, top_k=top_k)
+
+        # get top results and corresponding scores
+        scores = np.zeros((len(queries), top_k))
+        results = [[0 for _ in range(top_k)] for _ in range(len(queries))]
+
+        for iquery, iquery_hits in enumerate(hits):
+            for top_i, hit in enumerate(iquery_hits):
+                scores[iquery][top_i] = hit['score']
+                results[iquery][top_i] = texts[hit['corpus_id']]
+
+        return results, scores
