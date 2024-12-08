@@ -28,7 +28,7 @@ def bm25_tokenizer(text):
             tokenized_doc.append(token)
     return tokenized_doc
 
-def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, misconception_mapping, top_k=25, alpha=0.95):
+def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, misconception_mapping, top_k=25, alpha=0.85):
     combined_results = []
     for sem_res, sem_scores, key_res, key_scores in zip(semantic_results, semantic_scores, keyword_results, keyword_scores):
 
@@ -50,6 +50,45 @@ def combined_search(semantic_results, semantic_scores, keyword_results, keyword_
         combined_results.append(top_combined)
 
     return combined_results
+
+def reciprocal_rank_fusion(results_model1, results_model2, top_k=25, alpha=0.8):
+    """
+    Combine two ranked lists using Reciprocal Rank Fusion (RRF).
+
+    Parameters:
+        results_model1 (np.ndarray): Ranked lists from model 1, shape (Nqueries, R).
+        results_model2 (np.ndarray): Ranked lists from model 2, shape (Nqueries, R).
+        alpha (float): Weighting parameter for RRF, default is 0.8.
+        top_k (int): Number of results to return in the combined ranked list, default is 25.
+
+    Returns:
+        np.ndarray: Combined ranked lists using RRF, shape (Nqueries, top_k).
+    """
+    Nqueries, R = results_model1.shape
+
+    # Initialize array to store combined rankings
+    combined_rankings = np.zeros((Nqueries, top_k), dtype=int)
+
+    for i in range(Nqueries):
+        scores = {}  # Dictionary to store cumulative RRF scores for each document
+
+        # Process model 1 results
+        for rank, doc_id in enumerate(results_model1[i]):
+            score = 1 / (rank + 1 + alpha)
+            scores[doc_id] = scores.get(doc_id, 0) + score
+
+        # Process model 2 results
+        for rank, doc_id in enumerate(results_model2[i]):
+            score = 1 / (rank + 1 + alpha)
+            scores[doc_id] = scores.get(doc_id, 0) + score
+
+        # Sort documents by their cumulative RRF scores in descending order
+        sorted_docs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Take the top_k documents
+        combined_rankings[i] = [doc_id for doc_id, _ in sorted_docs[:top_k]]
+
+    return combined_rankings
 
 def evaluate(data: pd.DataFrame, preds_col: str, misconception_id_txt: dict) -> pd.DataFrame:
     # Compute APK score for the BM25 search results
