@@ -30,6 +30,7 @@ def bm25_tokenizer(text):
 
 def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, misconception_mapping, top_k=25, alpha=0.85):
     combined_results = []
+    combined_scores_all = []
     for sem_res, sem_scores, key_res, key_scores in zip(semantic_results, semantic_scores, keyword_results, keyword_scores):
 
         # Normalize semantic scores (now smaller is better)
@@ -46,10 +47,14 @@ def combined_search(semantic_results, semantic_scores, keyword_results, keyword_
         for idx, score in zip(key_res, key_scores_norm):
             combined_scores[idx] += (1 - alpha) * score
 
-        top_combined = np.argsort(combined_scores)[::-1][:top_k]
-        combined_results.append(top_combined)
+        # Get top_k results based on combined scores
+        top_combined_indices = np.argsort(combined_scores)[::-1][:top_k]
+        top_combined_scores = combined_scores[top_combined_indices]
 
-    return combined_results
+        combined_results.append(top_combined_indices)
+        combined_scores_all.append(top_combined_scores)
+
+    return combined_results, combined_scores_all
 
 def reciprocal_rank_fusion(results_model1, results_model2, top_k=25, alpha=0.8):
     """
@@ -74,12 +79,12 @@ def reciprocal_rank_fusion(results_model1, results_model2, top_k=25, alpha=0.8):
 
         # Process model 1 results
         for rank, doc_id in enumerate(results_model1[i]):
-            score = 1 / (rank + 1 + alpha)
+            score = alpha / (rank + 60)
             scores[doc_id] = scores.get(doc_id, 0) + score
 
         # Process model 2 results
         for rank, doc_id in enumerate(results_model2[i]):
-            score = 1 / (rank + 1 + alpha)
+            score = (1 - alpha) / (rank + 60)
             scores[doc_id] = scores.get(doc_id, 0) + score
 
         # Sort documents by their cumulative RRF scores in descending order
