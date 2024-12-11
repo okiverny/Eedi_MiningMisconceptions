@@ -17,7 +17,7 @@ class MisconceptRetrieval:
         """Usually, the MisconceptRetrieval allows replacing a RetrievalStrategy object at runtime."""
         self._search_strategy = search_strategy
 
-    def find_misconceptions(self, texts, queries, top_k):
-        results, scores = self._search_strategy.search_misconceptions(texts, queries, top_k)
+    def find_misconceptions(self, texts, queries, top_k, model_path=''):
+        results, scores = self._search_strategy.search_misconceptions(texts, queries, top_k, model_path=model_path)
         return results, scores
     
