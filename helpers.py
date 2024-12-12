@@ -28,7 +28,7 @@ def bm25_tokenizer(text):
             tokenized_doc.append(token)
     return tokenized_doc
 
-def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, misconception_mapping, top_k=25, alpha=0.85):
+def combined_search(semantic_results, semantic_scores, keyword_results, keyword_scores, misconception_mapping, top_k=25, alpha=0.70):
     combined_results = []
     combined_scores_all = []
     for sem_res, sem_scores, key_res, key_scores in zip(semantic_results, semantic_scores, keyword_results, keyword_scores):
@@ -46,6 +46,41 @@ def combined_search(semantic_results, semantic_scores, keyword_results, keyword_
 
         for idx, score in zip(key_res, key_scores_norm):
             combined_scores[idx] += (1 - alpha) * score
+
+        # Get top_k results based on combined scores
+        top_combined_indices = np.argsort(combined_scores)[::-1][:top_k]
+        top_combined_scores = combined_scores[top_combined_indices]
+
+        combined_results.append(top_combined_indices)
+        combined_scores_all.append(top_combined_scores)
+
+    return combined_results, combined_scores_all
+
+def combined_search_three_models(results1, scores1, results2, scores2, results3, scores3, misconception_mapping, top_k=25, weights=(0.33, 0.33, 0.34)):
+    combined_results = []
+    combined_scores_all = []
+
+    # Unpack weights
+    alpha1, alpha2, alpha3 = weights
+
+    for res1, scores1_norm, res2, scores2_norm, res3, scores3_norm in zip(
+        results1, scores1, results2, scores2, results3, scores3
+    ):
+        # Normalize scores for all models
+        scores1_norm = (scores1_norm - np.min(scores1_norm)) / (np.max(scores1_norm) - np.min(scores1_norm))
+        scores2_norm = (scores2_norm - np.min(scores2_norm)) / (np.max(scores2_norm) - np.min(scores2_norm))
+        scores3_norm = (scores3_norm - np.min(scores3_norm)) / (np.max(scores3_norm) - np.min(scores3_norm))
+
+        # Initialize combined scores
+        combined_scores = np.zeros(len(misconception_mapping))
+
+        # Add contributions from each model
+        for idx, score in zip(res1, scores1_norm):
+            combined_scores[idx] += alpha1 * score
+        for idx, score in zip(res2, scores2_norm):
+            combined_scores[idx] += alpha2 * score
+        for idx, score in zip(res3, scores3_norm):
+            combined_scores[idx] += alpha3 * score
 
         # Get top_k results based on combined scores
         top_combined_indices = np.argsort(combined_scores)[::-1][:top_k]
