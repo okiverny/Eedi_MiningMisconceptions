@@ -102,3 +102,14 @@ if __name__ == "__main__":
     if RUNNING_MODE=='cpu':
         is_labeled = True
         data = run_cpu(df_train, is_labeled, misconception_mapping)
+
+        # Convert to the submission data frame with results
+        df_results = data[['QuestionId_Answer', 'hybrid_preds']]
+        df_results = df_results.rename(columns={"hybrid_preds": "MisconceptionId"})
+
+        results = []
+        for row in df_results.MisconceptionId.values:
+            results.append(" ".join([str(misc_id) for misc_id in row]))
+
+        df_results["MisconceptionId"] = results
+        df_results.to_csv("submission.csv", columns=["QuestionId_Answer", "MisconceptionId"], index=False)

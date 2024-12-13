@@ -54,7 +54,7 @@ class SemanticSearch(RetrievalStrategy):
     #### Semantic Search (bi-encoder)
     def search_misconceptions(self, texts, queries, top_k, model_path=''):
 
-        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1', device='mps') # MAPK@25 = 0.1845 device='cpu'
+        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1', device='cpu') # MAPK@25 = 0.1845 device='cpu' or `mps`
         #bi_encoder = SentenceTransformer('multi-qa-mpnet-base-cos-v1') # MAPK@25 = 0.1851
         #bi_encoder = SentenceTransformer('all-mpnet-base-v2')  # MAPK@25 = 0.1841
         #bi_encoder = SentenceTransformer('Alibaba-NLP/gte-base-en-v1.5', trust_remote_code=True) # MAPK@25 = 0.1730
@@ -126,10 +126,10 @@ class SemanticSearchFineTuned(RetrievalStrategy):
 
         if model_path=='':
             #bi_encoder = SentenceTransformer('/Users/okiverny/workspace/Kaggle/Eedi_MiningMisconceptions/models/Eedi-finetuned-bge', device='mps') # device='cpu'
-            bi_encoder = SentenceTransformer('/Users/okiverny/workspace/Kaggle/Eedi_MiningMisconceptions/models/gte-base-weights/gte-base_trained_model_version2', device='mps', trust_remote_code=True, local_files_only=True)
+            bi_encoder = SentenceTransformer('/Users/okiverny/workspace/Kaggle/Eedi_MiningMisconceptions/models/gte-base-weights/gte-base_trained_model_version2', device='cpu', trust_remote_code=True, local_files_only=True)
             #bi_encoder = SentenceTransformer('/Users/okiverny/workspace/Kaggle/Eedi_MiningMisconceptions/models/mpnet_weights_version1/mpnetV2_trained_model_version3', device='mps', trust_remote_code=True, local_files_only=True)
         else:
-            bi_encoder = SentenceTransformer(model_path, device='mps', trust_remote_code=True, local_files_only=True)
+            bi_encoder = SentenceTransformer(model_path, device='cpu', trust_remote_code=True, local_files_only=True)
 
         bi_encoder.max_seq_length = 256     #Truncate long passages to 256 tokens
         print('Encoding misconceptions ...')
