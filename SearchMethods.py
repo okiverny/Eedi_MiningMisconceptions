@@ -42,12 +42,8 @@ class LexicalSearch(RetrievalStrategy):
             bm25_hits = [{'corpus_id': idx, 'score': bm25_scores[idx]} for idx in top_n]
             bm25_hits = sorted(bm25_hits, key=lambda x: x['score'], reverse=True)
 
-            #print('------> Query:\n', query )
-            #print('------> Query Tokens:\n', query_tokenized )
-            #print(f"Top-{top_k} lexical search (BM25) hits of the following query:")
             
             for top_i, hit in enumerate(bm25_hits[0:top_k]):
-                #print("\t{:.3f}\t{}".format(hit['score'], texts[hit['corpus_id']].replace("\n", " ")))
                 scores[iquery][top_i] = hit['score']
                 results[iquery][top_i] = texts[hit['corpus_id']]
 
@@ -85,7 +81,7 @@ class SemanticSearchReranking(RetrievalStrategy):
     #### Semantic Search (bi-encoder + cross-encode)
     def search_misconceptions(self, texts, queries, top_k, model_path=''):
 
-        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1') # MAPK@25 = 0.1845
+        bi_encoder = SentenceTransformer('multi-qa-MiniLM-L6-cos-v1')
         bi_encoder.max_seq_length = 256     #Truncate long passages to 256 tokens
         print('Encoding misconceptions ...')
         misconception_embeddings = bi_encoder.encode(texts, convert_to_tensor=True, show_progress_bar=True)
@@ -96,7 +92,7 @@ class SemanticSearchReranking(RetrievalStrategy):
 
         ##### Re-Ranking #####
         #The bi-encoder retrieved top_k misconceptions. We use a cross-encoder, to re-rank the results list to improve the quality
-        cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2') # MAPK@25 = 0.1597 (multi-qa-MiniLM-L6-cos-v1)
+        cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
         new_hits = []
         for iquery, query_hits in enumerate(tqdm(hits)):
             query = queries.values[iquery]
@@ -157,14 +153,3 @@ class SemanticSearchFineTuned(RetrievalStrategy):
                 results[iquery][top_i] = texts[hit['corpus_id']]
 
         return results, scores
-    
-
-class SemanticSearchPadEmbedding(RetrievalStrategy):
-    #### Semantic Search on padded embeddings from several models
-    def search_misconceptions(self, texts, queries, top_k):
-
-
-        return None, None
-
-    def pad_embeddings(self, embeddings):
-        return np.pad(embeddings, ((0, 0), (0, 256)), mode='constant')
