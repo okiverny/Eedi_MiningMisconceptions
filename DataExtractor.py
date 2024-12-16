@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def process_question(data: pd.DataFrame, question_id: int, is_labeled=True) -> dict:
     row = data.loc[[question_id]]
@@ -101,3 +102,26 @@ def process_data(input_df: pd.DataFrame, is_labeled: bool) -> pd.DataFrame:
         #print(data)
 
     return pd.DataFrame(data=data)
+
+def process_data_forLLM(data: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for idx, row in data.iterrows():
+        for option in ["A", "B", "C", "D"]:
+            if option == row.CorrectAnswer:
+                continue
+            
+            correct_answer = row[f"Answer{row.CorrectAnswer}Text"]
+
+            query_text =f"### SubjectName: {row['SubjectName']}\n### ConstructName: {row['ConstructName']}\n### Question: {row['QuestionText']}\n### Correct Answer: {correct_answer}\n### Misconcepte Incorrect answer: {option}.{row[f'Answer{option}Text']}"
+            rows.append({"query_text": query_text, 
+                        "QuestionId_Answer": f"{row.QuestionId}_{option}",
+                        "ConstructName": row.ConstructName,
+                        "SubjectName": row.SubjectName,
+                        "QuestionText": row.QuestionText,
+                        "correct_answer": correct_answer,
+                        "incorrect_answer": row[f"Answer{option}Text"]
+                        })
+
+    df = pd.DataFrame(rows)
+
+    return df
