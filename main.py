@@ -3,10 +3,12 @@ import numpy as np
 import pandas as pd
 import time
 
-from DataExtractor import process_data
+from DataExtractor import process_data, process_data_forLLM
 from Retrieval import MisconceptRetrieval
 from SearchMethods import LexicalSearch, SemanticSearch, SemanticSearchFineTuned, SemanticSearchPadEmbedding
+from SearchMethodsQwen25 import Qwen25_14B_Search
 from helpers import combined_search, evaluate, reciprocal_rank_fusion, combined_search_three_models
+
 
 def run_cpu(input_data: pd.DataFrame, is_labeled: bool, misconception_mapping: pd.DataFrame) -> pd.DataFrame:
     start = time.time()
@@ -100,10 +102,11 @@ if __name__ == "__main__":
 
 
     if RUNNING_MODE=='cpu':
+        # Run the misconception retrieval
         is_labeled = True
         data = run_cpu(df_train, is_labeled, misconception_mapping)
 
-        # Convert to the submission data frame with results
+        ###### Convert to the submission data frame with results
         df_results = data[['QuestionId_Answer', 'hybrid_preds']]
         df_results = df_results.rename(columns={"hybrid_preds": "MisconceptionId"})
 
@@ -113,3 +116,27 @@ if __name__ == "__main__":
 
         df_results["MisconceptionId"] = results
         df_results.to_csv("submission.csv", columns=["QuestionId_Answer", "MisconceptionId"], index=False)
+
+    else:
+        # Prepare data to feed to Qwen2.5 7B or 14B retrieval models
+        data = process_data_forLLM(df_test)
+
+        # Indicate the paths to finetuned models for retreival task
+        model_path = '/kaggle/input/qwen2.5-14/pytorch/default/1'
+        lora_path='/kaggle/input/14b-cp750/pytorch/default/1/checkpoint-750'
+
+        ###### Initialize the MisconceptRetrieval with a lexical search strategy
+        retrieval = MisconceptRetrieval(Qwen25_14B_Search())
+
+        top_k = 25 # number of top misconceptions to retrieve
+        df_results, retrieved_results = retrieval.find_misconceptions_qwen_model(data, misconception_mapping, top_k, model_path, lora_path)
+
+        ### Create submission
+        results = []
+        for i in range(retrieved_results.shape[0]):
+            reranked_row = retrieved_results[i]
+            results.append(" ".join([str(misc_id) for misc_id in reranked_row]))
+
+        df_results["MisconceptionId"] = results
+        df_results.to_csv("submission.csv", columns=["QuestionId_Answer", "MisconceptionId"], index=False)
+

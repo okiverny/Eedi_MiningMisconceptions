@@ -20,4 +20,7 @@ class MisconceptRetrieval:
     def find_misconceptions(self, texts, queries, top_k, model_path=''):
         results, scores = self._search_strategy.search_misconceptions(texts, queries, top_k, model_path=model_path)
         return results, scores
-    
+
+    def find_misconceptions_qwen_model(self, data, misconception_mapping, top_k, model_path, lora_path):
+        results = self._search_strategy.retrieve_misconceptions(data, misconception_mapping, top_k, model_path, lora_path)
+        return results

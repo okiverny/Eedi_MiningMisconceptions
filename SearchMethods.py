@@ -14,7 +14,12 @@ from helpers import bm25_tokenizer, preprocess_text
 class RetrievalStrategy(ABC):
     """This is the interface that declares operations common to all signal extraction algorithms/methods."""
     @abstractmethod
-    def search_misconceptions(self, texts, queries, top_k):
+    def search_misconceptions(self, texts, queries, top_k, model_path=''):
+        pass
+
+    """This is the interface that declares operations common to all info extraction algorithms/methods based on finetuned models."""
+    @abstractmethod
+    def retrieve_misconceptions(self, data, misconception_mapping, top_k, model_path, lora_path):
         pass
 
 # Concrete Strategies
