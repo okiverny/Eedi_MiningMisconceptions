@@ -7,6 +7,7 @@ from DataExtractor import process_data, process_data_forLLM
 from Retrieval import MisconceptRetrieval
 from SearchMethods import LexicalSearch, SemanticSearch, SemanticSearchFineTuned, SemanticSearchPadEmbedding
 from SearchMethodsQwen25 import Qwen25_14B_Search
+from reranker import RerankerModel
 from helpers import combined_search, evaluate, reciprocal_rank_fusion, combined_search_three_models
 
 
@@ -125,13 +126,24 @@ if __name__ == "__main__":
         model_path = '/kaggle/input/qwen2.5-14/pytorch/default/1'
         lora_path='/kaggle/input/14b-cp750/pytorch/default/1/checkpoint-750'
 
-        ###### Initialize the MisconceptRetrieval with a lexical search strategy
+        ###### Initialize the MisconceptRetrieval with the Qwen25 14B Model Search strategy
         retrieval = MisconceptRetrieval(Qwen25_14B_Search())
 
         top_k = 25 # number of top misconceptions to retrieve
         df_results, retrieved_results = retrieval.find_misconceptions_qwen_model(data, misconception_mapping, top_k, model_path, lora_path)
 
-        ### Create submission
+        ###### Reranking of the results from Qwen2.5 14B Model using Qwen2.5 72B Instruct Model
+        reranker_model_path = "/kaggle/input/qwen2.5/transformers/72b-instruct-awq/1"
+        data_path = "df.parquet"  # combined data file constructed at the first step (find_misconceptions_qwen_model)
+        retrieved_results_path = "indices.npy"   # result from the Qwen25 14B Retrieval Model
+
+        # Initialize the Qwen2.5 72B Reranker Model 
+        reranker = RerankerModel(reranker_model_path, indices_path=retrieved_results_path, data_path=retrieved_results_path)
+
+        # Reranking step
+        retrieved_results = reranker.rerank_with_reasoning(n_iterations=4)
+
+        ###### Create submission
         results = []
         for i in range(retrieved_results.shape[0]):
             reranked_row = retrieved_results[i]
